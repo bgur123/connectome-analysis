@@ -34,6 +34,10 @@ filePath =  os.path.join(main_path,'Tm9_rel_abs_counts',current_data)
 
 data_df = pd.read_csv(filePath, header=0, index_col=0)
 data_df = data_df.fillna(0)
+order = ['L3','Mi4','CT1','Tm16','Dm12','Tm20',
+         'C3','Tm1','PS125','L4','ML1','TmY17','C2',
+         'OA-AL2b2','Tm2','Mi13','putative-fru-N.I.','Tm5c','Me-Lo-2-N.I.','TmY15']
+data_df = data_df[order]
 
 if exclude_neurons:
     cluster_df = data_df.drop(columns=neurons_to_exclude)
@@ -122,9 +126,10 @@ axs.plot(range(2, max_c), silhouette_coefficients)
 # axs[1].set_xticks(range(2, max_c))
 axs.set_xlabel("Number of Clusters")
 axs.set_ylabel("Silhouette Coefficient")
+axs.set_xlim([2,20])
 
 # %% Clustering 
-selected_cluster_n = 6
+selected_cluster_n = 7
 clusterer = AgglomerativeClustering(n_clusters=selected_cluster_n, linkage='ward')
 cluster_labels = clusterer.fit_predict(distances)
 
@@ -135,10 +140,9 @@ unique_clusters , counts = np.unique(cluster_labels, return_counts= True)
 # neurons_to_exclude = ["L3", "Mi4", "CT1"]
 # plot_df = cluster_df.drop(columns=neurons_to_exclude)
 plot_df = cluster_df
-
+# plot_df = cluster_df[order[3:]]
 binarized_df = plot_df.applymap(lambda x: 1 if x > 0 else 0)
-
-fig2, axs2 = plt.subplots(selected_cluster_n,figsize=(16, 16))
+fig2, axs2 = plt.subplots(selected_cluster_n,figsize=(6, 12))
 for icluster, cluster_n in enumerate(unique_clusters):
     current_c_df = binarized_df.iloc[cluster_labels==cluster_n]
     sns.heatmap(current_c_df,ax=axs2[icluster],cbar=False)
@@ -148,7 +152,7 @@ for icluster, cluster_n in enumerate(unique_clusters):
     if not((icluster == len(unique_clusters)-1)):
         axs2[icluster].set_xticklabels([])
         
-fig3, axs3 = plt.subplots(selected_cluster_n,figsize=(16, 8))
+fig3, axs3 = plt.subplots(selected_cluster_n,figsize=(5, 15))
 
 for icluster, cluster_n in enumerate(unique_clusters):
     current_c_df = binarized_df.iloc[cluster_labels==cluster_n]    
@@ -164,12 +168,8 @@ for icluster, cluster_n in enumerate(unique_clusters):
     axs3[icluster].set_xticklabels(axs3[icluster].get_xticklabels(), rotation=90)
     if not((icluster == len(unique_clusters)-1)):
         axs3[icluster].set_xticklabels([])
-        
-    
 
-
-
-# %% Save figures
+#%% Save figures
 fig.savefig(os.path.join(fig_save_path,f'HeatMapHamming_{selected_cluster_n}clusters_{current_data}_excludeMajor-{exclude_neurons}.pdf'))
 fig1.savefig(os.path.join(fig_save_path,f'Silhouette_{selected_cluster_n}clusters_{current_data}_excludeMajor-{exclude_neurons}.pdf'))
 fig2.savefig(os.path.join(fig_save_path,f'BinaryHeatMap_{selected_cluster_n}clusters_{current_data}_excludeMajor-{exclude_neurons}.pdf'))

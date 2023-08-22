@@ -36,6 +36,10 @@ filePath =  os.path.join(main_path,'Tm9_rel_abs_counts',current_data)
 
 data_df = pd.read_csv(filePath, header=0, index_col=0)
 data_df = data_df.fillna(0)
+order = ['L3','Mi4','CT1','Tm16','Dm12','Tm20',
+         'C3','Tm1','PS125','L4','ML1','TmY17','C2',
+         'OA-AL2b2','Tm2','Mi13','putative-fru-N.I.','Tm5c','Me-Lo-2-N.I.','TmY15']
+data_df = data_df[order]
 
 if exclude_neurons:
     cluster_df = data_df.drop(columns=neurons_to_exclude)
@@ -100,17 +104,22 @@ kmeans.fit(data_array)
 unique_clusters , counts = np.unique(kmeans.labels_, return_counts= True)
 print(f'Neurons per cluster: {counts}' )
 
-fig2, axs = plt.subplots(len(unique_clusters),figsize=(5, 10),sharey=True)
-major_inputs_data = data_df[['L3','Mi4','CT1','Tm16','Dm12']]
+fig2, axs = plt.subplots(len(unique_clusters),figsize=(5, 15),sharey=True)
+# major_inputs_data = data_df[['L3','Mi4','CT1','Tm16','Dm12']]
+# order
 for cluster in unique_clusters:
-    sns.boxplot(data=major_inputs_data.iloc[np.where(kmeans.labels_ == cluster)[0]],ax = axs[cluster])
+    sns.boxplot(data=data_df.iloc[np.where(kmeans.labels_ == cluster)[0]],ax = axs[cluster])
+    
+    if cluster == len(unique_clusters)-1:
+        axs[cluster].set_xticklabels(axs[cluster].get_xticklabels(),rotation=90)
+    else:
+        axs[cluster].set_xticks([])
     # axs[cluster].set_ylabel('relative counts')
 fig2.suptitle(f'Neurons per cluster: {counts}')
 
 # %% Save figures
-# %% Save figures
 fig1.savefig(os.path.join(fig_save_path,f'k-means_Silhouette_{n_k_clusters}clusters_{current_data}_excludeMajor-{exclude_neurons}_scale-{scale_data}.pdf'))
-fig2.savefig(os.path.join(fig_save_path,f'k-means_BinaryHeatMap_{n_k_clusters}clusters_{current_data}_excludeMajor-{exclude_neurons}_scale-{scale_data}.pdf'))
+fig2.savefig(os.path.join(fig_save_path,f'k-means_neurons_{n_k_clusters}clusters_{current_data}_excludeMajor-{exclude_neurons}_scale-{scale_data}.pdf'))
 
 #%% Visualize the clusters
 filePath =  os.path.join(main_path,"Tm9 proofreadings - Hoja 1.csv")
@@ -126,9 +135,55 @@ for idx, neuron in enumerate(OL_labels):
     coordinate = location_df.iloc[df_loc]["XYZ-ME"].to_numpy(dtype=str, copy=True)
     xyz[idx,:] = np.array([coordinate[0].split(',')],dtype=float)
 xyz *=[4,4,40] # For plotting it using navis
-
-# fig4, axs4 = plt.subplots(selected_cluster_n,figsize=(16, 16))
 cluster_labels= kmeans.labels_
+
+#%% plot 2 clusters
+fig = plt.figure()
+ax  = fig.add_subplot(projection='3d')
+
+OL_R = flywire.get_neuropil_volumes(['ME_R']) #['ME_R','LO_R','LOP_R']
+OL_L = flywire.get_neuropil_volumes(['ME_L']) #['ME_R','LO_R','LOP_R']
+
+ax.azim=340
+ax.elav=40
+# ax.set_xlim(min(xyz[:,0])-10, max(xyz[:,0])-300000)
+# ax.set_ylim(min(xyz[:,1])-10, max(xyz[:,1])-100000)
+# ax.set_zlim(min(xyz[:,2])-10, max(xyz[:,2])-100)
+navis.plot2d([OL_R], method='3d_complex', ax=ax,view=(12, 2),scalebar = '10 um')
+navis.plot2d([OL_L], method='3d_complex', ax=ax,view=(12, 2),scalebar = '10 um')
+ax.scatter(xyz[cluster_labels==0,0],xyz[cluster_labels==0,1],
+        xyz[cluster_labels==0,2],'.',linewidth=0,s=15,color=[228/255,26/255,28/255,0.8], label=f"Cluster 0")
+ax.scatter(xyz[cluster_labels==1,0],xyz[cluster_labels==1,1],
+        xyz[cluster_labels==1,2],'.',linewidth=0,s=15,color=[55/255,126/255,184/255,0.8], label=f"Cluster 1")
+
+fig.suptitle(f"Clusters in OL L")
+fig.savefig(os.path.join(fig_save_path,f'Location_{n_k_clusters}clusters_{current_data}_excludeMajor-{exclude_neurons}_OL-L.pdf'))
+
+fig = plt.figure()
+ax  = fig.add_subplot(projection='3d')
+
+OL_R = flywire.get_neuropil_volumes(['ME_R']) #['ME_R','LO_R','LOP_R']
+OL_L = flywire.get_neuropil_volumes(['ME_L']) #['ME_R','LO_R','LOP_R']
+
+ax.azim=0
+ax.elav=20
+ax.set_xlim(min(xyz[:,0])-10, max(xyz[:,0])-300000)
+ax.set_ylim(min(xyz[:,1])-10, max(xyz[:,1])-100000)
+ax.set_zlim(min(xyz[:,2])-10, max(xyz[:,2])-100)
+navis.plot2d([OL_R], method='3d_complex', ax=ax,view=(12, 2),scalebar = '10 um')
+navis.plot2d([OL_L], method='3d_complex', ax=ax,view=(12, 2),scalebar = '10 um')
+ax.scatter(xyz[cluster_labels==0,0],xyz[cluster_labels==0,1],
+        xyz[cluster_labels==0,2],'.',linewidth=0,s=15,color=[228/255,26/255,28/255,0.8], label=f"Cluster 0")
+ax.scatter(xyz[cluster_labels==1,0],xyz[cluster_labels==1,1],
+        xyz[cluster_labels==1,2],'.',linewidth=0,s=15,color=[55/255,126/255,184/255,0.8], label=f"Cluster 1")
+fig.suptitle(f"Clusters in OL R")
+fig.savefig(os.path.join(fig_save_path,f'Location_{n_k_clusters}clusters_{current_data}_excludeMajor-{exclude_neurons}_OL-R.pdf'))
+
+#%% plot pc
+
+
+#%%
+# fig4, axs4 = plt.subplots(selected_cluster_n,figsize=(16, 16))
 for icluster, cluster_n in enumerate(unique_clusters):
     fig = plt.figure()
     ax  = fig.add_subplot(projection='3d')
@@ -144,7 +199,7 @@ for icluster, cluster_n in enumerate(unique_clusters):
     ax.set_zlim(min(xyz[:,2])-10, max(xyz[:,2])-100)
     navis.plot2d([OL_R], method='3d_complex', ax=ax,view=(12, 2),scalebar = '10 um')
     navis.plot2d([OL_L], method='3d_complex', ax=ax,view=(12, 2),scalebar = '10 um')
-    fig.suptitle(f"Cluster{cluster_n} OL L")
+    # fig.suptitle(f"Cluster{cluster_n} OL L")
     fig.savefig(os.path.join(fig_save_path,f'Location_{n_k_clusters}clusters_{current_data}_excludeMajor-{exclude_neurons}_cluster{cluster_n}_OL-L.pdf'))
 
 for icluster, cluster_n in enumerate(unique_clusters):
